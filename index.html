@@ -103,9 +103,13 @@
       width: 920px;
       height: 540px;          /* ✅ more vertical room so FINAL fits */
       transform-origin: top left;
-      will-change: transform;
       position:absolute; inset:0;
       overflow:hidden;
+
+      /* ✅ help rendering when transform fallback is used */
+      backface-visibility:hidden;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
     }
 
     .topbar{
@@ -643,6 +647,9 @@
       }catch(e){}
     }
 
+    // ✅ Crisp scaling:
+    // - Use CSS zoom when available (crisper text than transform)
+    // - Otherwise use transform scale, but snap to whole pixels to reduce blur
     function scaleStage(){
       const stage = $("stage");
       const wrap  = $("stageWrap");
@@ -652,15 +659,34 @@
       const vw = (vv ? vv.width : window.innerWidth);
       const vh = (vv ? vv.height : window.innerHeight);
 
-      const designW = 920, designH = 540;   // ✅ match stage height
+      const designW = 920, designH = 540;   // match stage
       const margin = 10;
 
-      const scale = Math.min((vw - margin*2)/designW, (vh - margin*2)/designH);
-      const s = Math.max(0.24, scale);
+      // raw scale
+      const raw = Math.min((vw - margin*2)/designW, (vh - margin*2)/designH);
+      let s = Math.max(0.24, raw);
 
-      wrap.style.width  = (designW * s) + "px";
-      wrap.style.height = (designH * s) + "px";
-      stage.style.transform = `scale(${s})`;
+      // snap so scaled size lands on whole pixels (reduces resampling blur)
+      const targetW = Math.max(1, Math.floor(designW * s));
+      const targetH = Math.max(1, Math.floor(designH * s));
+      s = Math.min(targetW / designW, targetH / designH);
+
+      // clamp precision (avoid long decimals)
+      s = Math.max(0.24, Math.round(s * 1000) / 1000);
+
+      // apply integer sized wrapper
+      wrap.style.width  = Math.round(designW * s) + "px";
+      wrap.style.height = Math.round(designH * s) + "px";
+
+      // prefer zoom if supported
+      const canZoom = ("zoom" in stage.style);
+      if(canZoom){
+        stage.style.zoom = String(s);
+        stage.style.transform = "none";
+      }else{
+        stage.style.zoom = "";
+        stage.style.transform = `translateZ(0) scale(${s})`;
+      }
 
       const small = (vw < 860) || (s < 0.78);
       panel.classList.toggle("smallMode", small);
@@ -910,4 +936,3 @@
   <script src="https://limkimsze-maker.github.io/assets/nav.js"></script>
 </body>
 </html>
-
