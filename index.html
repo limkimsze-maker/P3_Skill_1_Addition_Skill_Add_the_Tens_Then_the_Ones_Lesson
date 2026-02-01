@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- /standard (Kim Sze) -->
+  <link rel="icon" href="./kimsze_sharp16.ico?v=20260111a" sizes="any">
+  <link rel="shortcut icon" href="./kimsze_sharp16.ico?v=20260111a">
+
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <title>Add the Tens, Then Add the Ones — Step-by-step Practice</title>
+
+  <!-- ✅ Always-Clear on Load (Default Build Contract) -->
+  <script>
+  (function(){
+    const ACTIVITY_ID = "https://limkimsze-maker.github.io/AddTensThenOnes_Practice/";
+    try{
+      const toDelete = [];
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(!k) continue;
+        if(k === ACTIVITY_ID) toDelete.push(k);
+        if(k.startsWith(ACTIVITY_ID+"::")) toDelete.push(k);
+        if(k.startsWith("sls_scope::"+ACTIVITY_ID)) toDelete.push(k);
+        if(k.startsWith("UFCO-firstSubmit::"+ACTIVITY_ID)) toDelete.push(k);
+        if(k.startsWith("sls_unlike_payload::"+ACTIVITY_ID)) toDelete.push(k);
+        if(k.startsWith("sls_unlike_payload::"+ACTIVITY_ID+"::")) toDelete.push(k);
+        if(k.startsWith("UFCO-")) toDelete.push(k);
+      }
+      toDelete.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+
+      try{
+        sessionStorage.removeItem("UFCO-audio-unlocked");
+        sessionStorage.removeItem("UFCO-complete");
+      }catch(e){}
+
+      try{
+        const bc = new BroadcastChannel("xapi-state");
+        bc.postMessage({type:"clear", activityId: ACTIVITY_ID, ts: Date.now()});
+        bc.close();
+      }catch(e){}
+    }catch(e){}
+  })();
+  </script>
+
+  <style>
+    :root{
+      --bgA:#f6fbff; --bgB:#fff7ed;
+      --card:rgba(255,255,255,.92);
+      --ink:#0f172a; --muted:#64748b;
+      --line:#e2e8f0;
+      --good:#16a34a; --bad:#dc2626; --warn:#f59e0b;
+      --accent:#0ea5e9; --accent2:#a855f7;
+      --shadow:0 18px 44px rgba(2,6,23,.12);
+      --radius:18px;
+      --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{
+      width:100%;
+      height:100%;
+      margin:0;
+      overflow:hidden;                 /* ✅ no page scroll */
+      position:fixed;                  /* ✅ locks viewport */
+      overscroll-behavior: none;       /* ✅ no bounce scroll */
+      touch-action: manipulation;      /* ✅ better mobile taps */
+      font-family:var(--font);
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 15% 5%, rgba(14,165,233,.18), transparent 60%),
+        radial-gradient(1200px 700px at 85% 10%, rgba(168,85,247,.14), transparent 60%),
+        radial-gradient(900px 500px at 50% 90%, rgba(245,158,11,.10), transparent 62%),
+        linear-gradient(180deg, var(--bgA), var(--bgB));
+    }
+    body:before{
+      content:"";
+      position:fixed; inset:0;
+      background: repeating-linear-gradient(45deg,
+        rgba(15,23,42,.03) 0 8px,
+        rgba(15,23,42,0) 8px 16px);
+      pointer-events:none;
+      mix-blend-mode:multiply;
+      opacity:.28;
+    }
+
+    /* Fit-to-viewport wrapper */
+    .viewport{
+      position:fixed; inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden; /* ✅ no scroll anywhere */
+    }
+    .stageWrap{
+      position:relative;
+      width: 920px;
+      height: 540px;          /* ✅ more vertical room so FINAL fits */
+      overflow:hidden;
+    }
+    .stage{
+      width: 920px;
+      height: 540px;          /* ✅ more vertical room so FINAL fits */
+      transform-origin: top left;
+      will-change: transform;
+      position:absolute; inset:0;
+      overflow:hidden;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+      padding: 2px 8px 6px 8px;   /* ✅ tighter */
+      height: 42px;               /* ✅ more room below */
+    }
+    .title{ font-weight:950; letter-spacing:.2px; line-height:1.05; font-size:17px; }
+    .subtitle{ margin-top:2px; color:var(--muted); font-size:10px; line-height:1.15; }
+    .badges{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:nowrap;
+    }
+    .pill{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.86);
+      box-shadow:0 10px 22px rgba(2,6,23,.08);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      display:flex;
+      gap:7px;
+      align-items:center;
+      user-select:none;
+      backdrop-filter: blur(8px);
+      white-space:nowrap;
+    }
+    .dot{ width:10px; height:10px; border-radius:50%; background:var(--warn); box-shadow:0 0 0 4px rgba(245,158,11,.18); }
+    .dot.ok{ background:var(--good); box-shadow:0 0 0 4px rgba(22,163,74,.18); }
+
+    .panel{
+      margin: 0 8px 6px 8px;
+      height: calc(100% - 48px);   /* ✅ matches smaller topbar */
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:10px;
+      overflow:hidden;   /* ✅ fixed window, no internal scrolling */
+      position:relative;
+      backdrop-filter: blur(10px);
+    }
+    .panel:before{
+      content:"";
+      position:absolute;
+      width:200px; height:200px;
+      right:-80px; top:-80px;
+      border-radius:56px;
+      background: radial-gradient(circle at 30% 30%, rgba(14,165,233,.32), rgba(168,85,247,.16), transparent 70%);
+      transform: rotate(18deg);
+      pointer-events:none;
+    }
+
+    /* 2 columns: main + rail */
+    .layout{
+      height:100%;
+      display:grid;
+      grid-template-columns: 1fr 170px;
+      gap:10px;
+      align-items:stretch;
+      position:relative;
+      z-index:1;
+      min-height:0;
+      overflow:hidden; /* ✅ */
+    }
+
+    .mainCard{
+      height:100%;
+      background: rgba(255,255,255,.94);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:8px;          /* ✅ tighter */
+      overflow:hidden;      /* ✅ */
+      display:grid;
+      grid-template-rows: auto auto 1fr;
+      gap:6px;              /* ✅ tighter */
+      min-height:0;
+    }
+
+    .qHeader{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+      margin:0;
+    }
+    .eq{
+      display:flex;
+      align-items:baseline;
+      gap:8px;
+      flex-wrap:nowrap;
+      white-space:nowrap;
+      font-weight:950;
+      letter-spacing:.2px;
+      font-size:21px;
+    }
+    .eq .op{ color:var(--muted); font-weight:900; }
+    .hint{
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.15;
+      text-align:right;
+      max-width: 260px;
+    }
+
+    /* Bigger number bond (but still fits) */
+    .bondWrap{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:8px; /* ✅ tighter */
+      background:
+        radial-gradient(700px 240px at 25% 40%, rgba(14,165,233,.10), transparent 60%),
+        radial-gradient(700px 240px at 75% 40%, rgba(168,85,247,.10), transparent 60%),
+        rgba(255,255,255,.96);
+      overflow:hidden; /* ✅ */
+    }
+
+    .steps{
+      min-height:0;
+      display:grid;
+      gap:6px;               /* ✅ */
+      align-content:start;
+      overflow:hidden; /* ✅ */
+    }
+
+    /* ✅ no containers around equations */
+    .step{
+      border:none;
+      border-radius:0;
+      padding:4px 2px;
+      background:transparent;
+      overflow:visible;
+    }
+    .step + .step{
+      border-top:1px dashed rgba(100,116,139,.25);
+      padding-top:8px;
+      margin-top:4px;
+    }
+
+    .step h3{
+      margin:0 0 4px 0;      /* ✅ tighter */
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:10.5px;      /* ✅ slightly smaller */
+      letter-spacing:.2px;
+      font-weight:950;
+    }
+
+    .tag{
+      font-size:10px;
+      font-weight:950;
+      padding:3px 8px;
+      border-radius:999px;
+      color:#fff;
+      background:var(--accent);
+    }
+    .tag.two{ background:var(--accent2); }
+    .tag.final{ background:var(--good); }
+
+    .line{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      font-weight:950;
+      font-size:15px;
+    }
+
+    input.blank{
+      width:74px;
+      height:30px;
+      border-radius:12px;
+      border:2px solid var(--line);
+      padding:0 8px;
+      font-size:16px;      /* ✅ prevents iOS zoom */
+      font-weight:950;
+      text-align:center;
+      outline:none;
+      background:#fff;
+      line-height:30px;
+    }
+    input.blank.small{ width:66px; height:30px; font-size:16px; line-height:30px; }
+    input.blank:focus{
+      border-color: rgba(14,165,233,.75);
+      box-shadow:0 0 0 4px rgba(14,165,233,.16);
+    }
+    .okField{ border-color: rgba(22,163,74,.92)!important; box-shadow:0 0 0 4px rgba(22,163,74,.14)!important; }
+    .badField{ border-color: rgba(220,38,38,.92)!important; box-shadow:0 0 0 4px rgba(220,38,38,.12)!important; }
+
+    button{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:13px;
+      font-weight:950;
+      cursor:pointer;
+      box-shadow:0 10px 18px rgba(2,6,23,.08);
+      white-space:nowrap;
+      touch-action:manipulation;
+      user-select:none;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(14,165,233,.96), rgba(14,165,233,.82));
+      border-color: rgba(14,165,233,.6);
+      color:#fff;
+    }
+    button.good{
+      background:linear-gradient(180deg, rgba(22,163,74,.96), rgba(22,163,74,.82));
+      border-color: rgba(22,163,74,.6);
+      color:#fff;
+    }
+    button.ghost{ background:rgba(255,255,255,.78); }
+    button.warn{
+      background:linear-gradient(180deg, rgba(245,158,11,.96), rgba(245,158,11,.82));
+      border-color: rgba(245,158,11,.6);
+      color:#fff;
+    }
+
+    .rail{
+      height:100%;
+      background: rgba(255,255,255,.94);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:9px;
+      overflow:hidden; /* ✅ */
+      display:grid;
+      grid-template-rows: auto 1fr auto;
+      gap:8px;
+      min-height:0;
+    }
+    .railTitle{
+      font-weight:950;
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+    }
+    .railBtns{
+      display:grid;
+      gap:8px;
+      align-content:start;
+    }
+    .railBtns button{
+      width:100%;
+      padding:10px 10px;
+      font-size:12px;
+      border-radius:14px;
+    }
+    .railFooter{
+      display:grid;
+      gap:8px;
+    }
+    .feedback{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:8px 9px;
+      background: rgba(255,255,255,.88);
+      color:var(--muted);
+      font-size:10.8px;
+      line-height:1.25;
+      height:70px;
+      overflow:hidden;
+    }
+    .feedback strong{ color:var(--ink); }
+
+    .creditInline{
+      margin-top:4px;
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+      user-select:none;
+    }
+
+    .confetti{
+      position:fixed; inset:0;
+      pointer-events:none;
+      overflow:hidden;
+      z-index: 9999;
+    }
+    .confetti i{
+      position:absolute; top:-12px;
+      width:10px; height:14px;
+      border-radius:3px;
+      opacity:.95;
+      animation: fall 1100ms linear forwards;
+    }
+    @keyframes fall{
+      to{ transform: translateY(110vh) rotate(260deg); opacity:1; }
+    }
+
+    /* Small/mobile: stack rail below (still no scrolling due to scaling) */
+    #panel.smallMode .layout{ grid-template-columns: 1fr; }
+    #panel.smallMode .hint{ display:none; }
+    #panel.smallMode .rail{
+      grid-template-rows: auto auto;
+      height:auto;
+    }
+    #panel.smallMode .railBtns{
+      grid-template-columns: repeat(3, 1fr);
+      gap:8px;
+    }
+    #panel.smallMode .railFooter{
+      grid-template-columns: 1fr 1fr;
+      align-items:stretch;
+    }
+
+    /* Hidden xAPI */
+    #xapiBase{ display:none!important; }
+  </style>
+</head>
+
+<body>
+  <div class="viewport">
+    <div class="stageWrap" id="stageWrap">
+      <div class="stage" id="stage">
+        <div class="topbar">
+          <div>
+            <div class="title">Add the tens, then add the ones</div>
+            <div class="subtitle">Fill in the blanks for the number bond and equations.</div>
+          </div>
+
+          <div class="badges">
+            <div class="pill"><span class="dot" id="statusDot"></span><span id="statusText">Not checked</span></div>
+            <div class="pill"><span style="font-weight:950">Score</span> <span id="scorePill">0</span></div>
+          </div>
+        </div>
+
+        <div class="panel" id="panel">
+          <div class="layout">
+
+            <!-- MAIN -->
+            <div class="mainCard">
+              <div class="qHeader">
+                <div class="eq" aria-label="question equation">
+                  <span id="A">58</span>
+                  <span class="op">+</span>
+                  <span id="B">56</span>
+                </div>
+                <div class="hint" id="hintText">Tip: Break the second number into tens and ones.</div>
+              </div>
+
+              <div class="bondWrap" aria-label="number bond diagram">
+                <svg viewBox="0 0 820 190" width="100%" height="132" role="img" aria-label="Number bond">
+                  <defs>
+                    <linearGradient id="gLine" x1="0" x2="1">
+                      <stop offset="0" stop-color="rgba(14,165,233,0.95)"/>
+                      <stop offset="1" stop-color="rgba(168,85,247,0.92)"/>
+                    </linearGradient>
+                    <radialGradient id="gNode" cx="30%" cy="30%">
+                      <stop offset="0" stop-color="#ffffff"/>
+                      <stop offset="1" stop-color="rgba(240,253,250,0.92)"/>
+                    </radialGradient>
+                    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+                      <feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="rgba(2,6,23,0.18)"/>
+                    </filter>
+                  </defs>
+
+                  <path d="M410 52 C340 78, 290 110, 245 142" fill="none" stroke="url(#gLine)" stroke-width="9" stroke-linecap="round" opacity="0.95"/>
+                  <path d="M410 52 C480 78, 530 110, 575 142" fill="none" stroke="url(#gLine)" stroke-width="9" stroke-linecap="round" opacity="0.95"/>
+
+                  <g filter="url(#softShadow)">
+                    <circle cx="410" cy="52" r="36" fill="url(#gNode)" stroke="rgba(14,165,233,0.55)" stroke-width="7"/>
+                    <text x="410" y="60" text-anchor="middle" font-size="20" font-weight="950" fill="#0f172a" id="Btxt">56</text>
+                  </g>
+
+                  <g filter="url(#softShadow)">
+                    <circle cx="245" cy="142" r="40" fill="url(#gNode)" stroke="rgba(22,163,74,0.55)" stroke-width="7"/>
+                    <text x="245" y="125" text-anchor="middle" font-size="12" font-weight="900" fill="#64748b">part</text>
+                    <foreignObject x="202" y="144" width="86" height="36">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;justify-content:center;">
+                        <input class="blank small" id="tensPart" inputmode="numeric" autocomplete="off" aria-label="part 1"/>
+                      </div>
+                    </foreignObject>
+                  </g>
+
+                  <g opacity="0.65">
+                    <circle cx="410" cy="142" r="17" fill="rgba(15,23,42,0.06)" stroke="rgba(15,23,42,0.10)"/>
+                    <path d="M410 135 v14 M403 142 h14" stroke="rgba(15,23,42,0.55)" stroke-width="3" stroke-linecap="round"/>
+                  </g>
+
+                  <g filter="url(#softShadow)">
+                    <circle cx="575" cy="142" r="40" fill="url(#gNode)" stroke="rgba(22,163,74,0.55)" stroke-width="7"/>
+                    <text x="575" y="125" text-anchor="middle" font-size="12" font-weight="900" fill="#64748b">part</text>
+                    <foreignObject x="532" y="144" width="86" height="36">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;justify-content:center;">
+                        <input class="blank small" id="onesPart" inputmode="numeric" autocomplete="off" aria-label="part 2"/>
+                      </div>
+                    </foreignObject>
+                  </g>
+                </svg>
+              </div>
+
+              <div class="steps">
+                <div class="step">
+                  <h3><span class="tag">STEP 1</span> Add the tens</h3>
+                  <div class="line">
+                    <span id="A1">58</span>
+                    <span>+</span>
+                    <input class="blank" id="step1Add" inputmode="numeric" autocomplete="off" aria-label="add tens"/>
+                    <span>=</span>
+                    <input class="blank" id="step1Ans" inputmode="numeric" autocomplete="off" aria-label="step 1 answer"/>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <h3><span class="tag two">STEP 2</span> Add the ones (any order)</h3>
+                  <div class="line">
+                    <input class="blank" id="step2Start" inputmode="numeric" autocomplete="off" aria-label="first addend for step 2"/>
+                    <span>+</span>
+                    <input class="blank" id="step2Add" inputmode="numeric" autocomplete="off" aria-label="second addend for step 2"/>
+                    <span>=</span>
+                    <input class="blank" id="step2Ans" inputmode="numeric" autocomplete="off" aria-label="step 2 answer"/>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <h3><span class="tag final">FINAL</span> Whole sum</h3>
+                  <div class="line">
+                    <span id="A2">58</span>
+                    <span>+</span>
+                    <span id="B2">56</span>
+                    <span>=</span>
+                    <input class="blank" id="finalAns" inputmode="numeric" autocomplete="off" aria-label="final answer"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BUTTON RAIL -->
+            <div class="rail" aria-label="controls">
+              <div class="railTitle">
+                <span>Controls</span>
+                <span style="color:var(--muted); font-size:11px;">Step-by-step</span>
+              </div>
+
+              <div class="railBtns">
+                <button class="primary" id="btnCheck" type="button">Check</button>
+                <button class="warn" id="btnNext" type="button">Next ▶</button>
+                <button class="ghost" id="btnClear" type="button">Clear</button>
+                <button class="ghost" id="btnShowAll" type="button">Show all</button>
+                <button class="good" id="btnNew" type="button">New</button>
+              </div>
+
+              <div class="railFooter">
+                <div class="feedback" id="fb">
+                  <strong>Goal:</strong> Split the second number into tens and ones, then add in 2 steps.
+                </div>
+                <div class="creditInline">Designed by Lim Kim Sze © 2026</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="confetti" id="confetti"></div>
+        </div>
+
+        <!-- Hidden xAPI base -->
+        <div id="xapiBase">
+          <script src="xapiwrapper.min.js"></script>
+          <script src="index.js"></script>
+          <div><label>score</label><input id="score-input" value="0"></div>
+          <div><label>feedback</label><input id="feedback-input" value="Well done!"></div>
+          <button id="sendBtn" type="button">Send/Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sound kit (generic) -->
+  <script>
+    let audioCtx = null;
+    function ensureAudio(){
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+    function beep(freq=660, ms=120, type="sine", gainVal=0.06){
+      const ctx = ensureAudio();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type; o.frequency.value = freq; g.gain.value = gainVal;
+      o.connect(g); g.connect(ctx.destination);
+      o.start();
+      setTimeout(()=>{ try{o.stop();}catch(e){} }, ms);
+    }
+    function sfxCorrect(){ try{ beep(740,110,"triangle",0.07); setTimeout(()=>beep(990,130,"triangle",0.06),120);}catch(e){} }
+    function sfxWrong(){ try{ beep(220,180,"sawtooth",0.05);}catch(e){} }
+    function sfxClock(){ try{ beep(520,70,"square",0.03);}catch(e){} }
+  </script>
+
+  <script>
+    const ACTIVITY_ID = "https://limkimsze-maker.github.io/AddTensThenOnes_Practice/";
+    const $ = (id)=>document.getElementById(id);
+
+    const state = { A:58, B:56, tens:50, ones:6, step1:108, final:114 };
+    const fieldIds = ["tensPart","onesPart","step1Add","step1Ans","step2Start","step2Add","step2Ans","finalAns"];
+    let nextIndex = 0;
+
+    // ✅ Hard-stop scroll (mouse wheel / touch drag) while still allowing taps in inputs/buttons
+    function lockScroll(){
+      try{
+        document.addEventListener("wheel", (e)=>{ e.preventDefault(); }, {passive:false});
+        document.addEventListener("touchmove", (e)=>{
+          const t = e.target;
+          if(t && (t.tagName==="INPUT" || t.tagName==="BUTTON")) return;
+          e.preventDefault();
+        }, {passive:false});
+      }catch(e){}
+    }
+
+    function scaleStage(){
+      const stage = $("stage");
+      const wrap  = $("stageWrap");
+      const panel = $("panel");
+
+      const vv = window.visualViewport;
+      const vw = (vv ? vv.width : window.innerWidth);
+      const vh = (vv ? vv.height : window.innerHeight);
+
+      const designW = 920, designH = 540;   // ✅ match stage height
+      const margin = 10;
+
+      const scale = Math.min((vw - margin*2)/designW, (vh - margin*2)/designH);
+      const s = Math.max(0.24, scale);
+
+      wrap.style.width  = (designW * s) + "px";
+      wrap.style.height = (designH * s) + "px";
+      stage.style.transform = `scale(${s})`;
+
+      const small = (vw < 860) || (s < 0.78);
+      panel.classList.toggle("smallMode", small);
+    }
+    window.addEventListener("resize", scaleStage);
+    if(window.visualViewport){
+      window.visualViewport.addEventListener("resize", scaleStage);
+      window.visualViewport.addEventListener("scroll", scaleStage);
+    }
+
+    function clampInt(v){
+      if(v === "" || v == null) return null;
+      const n = parseInt(String(v).replace(/[^\d\-]/g,""),10);
+      return Number.isFinite(n) ? n : null;
+    }
+    function setStatus(ok, msg){
+      $("statusDot").classList.toggle("ok", !!ok);
+      $("statusText").textContent = msg;
+    }
+    function resetFieldStyles(){
+      fieldIds.forEach(id=> $(id).classList.remove("okField","badField"));
+    }
+    function setScore(score, feedback){
+      $("scorePill").textContent = String(score);
+      const scoreInput = $("score-input");
+      const fbInput = $("feedback-input");
+      if(scoreInput) scoreInput.value = String(score);
+      if(fbInput) fbInput.value = String(feedback || "Well done!");
+      try{
+        if(typeof storeState === "function"){
+          storeState({ score, feedback: String(feedback || "Well done!"), activityId: ACTIVITY_ID, ts: Date.now() });
+        }
+      }catch(e){}
+    }
+
+    function fillQuestionUI(){
+      $("A").textContent = state.A;
+      $("B").textContent = state.B;
+      $("A1").textContent = state.A;
+      $("A2").textContent = state.A;
+      $("B2").textContent = state.B;
+      $("Btxt").textContent = state.B;
+
+      fieldIds.forEach(id=> $(id).value = "");
+      resetFieldStyles();
+      setStatus(false, "Not checked");
+      $("fb").innerHTML = "<strong>Goal:</strong> Split the second number into tens and ones, then add in 2 steps.";
+      setScore(0, "Well done!");
+      nextIndex = 0;
+    }
+
+    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    function newQuestion(){
+      const A = randInt(20, 99);
+      const B = randInt(20, 99);
+      state.A = A;
+      state.B = B;
+      state.tens = Math.floor(B/10)*10;
+      state.ones = B % 10;
+      state.step1 = A + state.tens;
+      state.final = state.step1 + state.ones;
+      fillQuestionUI();
+    }
+
+    function showConfetti(){
+      const host = $("confetti");
+      host.innerHTML = "";
+      for(let i=0;i<42;i++){
+        const el = document.createElement("i");
+        el.style.left = (Math.random()*100) + "%";
+        el.style.animationDuration = (900 + Math.random()*500) + "ms";
+        el.style.background = (Math.random() < .5) ? "rgba(14,165,233,.95)" : "rgba(168,85,247,.90)";
+        el.style.opacity = (0.75 + Math.random()*0.25).toFixed(2);
+        host.appendChild(el);
+      }
+      setTimeout(()=>{ host.innerHTML=""; }, 1350);
+    }
+
+    function mark(elId, ok){
+      const el = $(elId);
+      el.classList.add(ok ? "okField" : "badField");
+      return ok ? 1 : 0;
+    }
+
+    function checkAll(){
+      resetFieldStyles();
+
+      const tensPart = clampInt($("tensPart").value);
+      const onesPart = clampInt($("onesPart").value);
+
+      const step1Add = clampInt($("step1Add").value);
+      const step1Ans = clampInt($("step1Ans").value);
+
+      const step2Start = clampInt($("step2Start").value);
+      const step2Add = clampInt($("step2Add").value);
+      const step2Ans = clampInt($("step2Ans").value);
+
+      const finalAns = clampInt($("finalAns").value);
+
+      let okCount = 0;
+      const total = 8;
+
+      const bondOK =
+        (tensPart === state.tens && onesPart === state.ones) ||
+        (tensPart === state.ones && onesPart === state.tens);
+
+      if(bondOK){
+        okCount += mark("tensPart", true);
+        okCount += mark("onesPart", true);
+      }else{
+        okCount += mark("tensPart", tensPart === state.tens);
+        okCount += mark("onesPart", onesPart === state.ones);
+      }
+
+      okCount += mark("step1Add", step1Add === state.tens);
+      okCount += mark("step1Ans", step1Ans === state.step1);
+
+      const step2PairOK =
+        (step2Start === state.step1 && step2Add === state.ones) ||
+        (step2Start === state.ones && step2Add === state.step1);
+
+      if(step2PairOK){
+        okCount += mark("step2Start", true);
+        okCount += mark("step2Add", true);
+      }else{
+        okCount += mark("step2Start", step2Start === state.step1);
+        okCount += mark("step2Add", step2Add === state.ones);
+      }
+
+      okCount += mark("step2Ans", step2Ans === state.final);
+      okCount += mark("finalAns", finalAns === state.final);
+
+      if(okCount === total){
+        setStatus(true, "✅ All correct!");
+        $("fb").innerHTML = "<strong>Correct!</strong> Nice job — tens first, then ones. 🎉";
+        if(sessionStorage.getItem("UFCO-audio-unlocked")==="1") sfxCorrect();
+        showConfetti();
+        setScore(1, "Success");
+      }else{
+        setStatus(false, `Try again (${okCount}/${total} correct)`);
+        $("fb").innerHTML = `<strong>Keep going.</strong> Split ${state.B} into tens and ones, then add in 2 steps.`;
+        if(sessionStorage.getItem("UFCO-audio-unlocked")==="1") sfxWrong();
+        setScore(0, "Well done!");
+      }
+    }
+
+    const revealPlan = [
+      { id:"tensPart",   val:()=>state.tens,  msg:()=>`Split ${state.B} into tens and ones.` },
+      { id:"onesPart",   val:()=>state.ones,  msg:()=>`Now add the tens first.` },
+      { id:"step1Add",   val:()=>state.tens,  msg:()=>`Add tens: ${state.A} + ${state.tens} = ...` },
+      { id:"step1Ans",   val:()=>state.step1, msg:()=>`Intermediate = ${state.step1}.` },
+      { id:"step2Start", val:()=>state.step1, msg:()=>`Add ones to ${state.step1}.` },
+      { id:"step2Add",   val:()=>state.ones,  msg:()=>`+ ${state.ones}.` },
+      { id:"step2Ans",   val:()=>state.final, msg:()=>`= ${state.final}.` },
+      { id:"finalAns",   val:()=>state.final, msg:()=>`Final: ${state.A} + ${state.B} = ${state.final}.` },
+    ];
+
+    function revealNext(){
+      if(nextIndex >= revealPlan.length){
+        setStatus(true, "All steps shown");
+        $("fb").innerHTML = "<strong>All shown.</strong> Press Clear to try again, or New for a new question.";
+        if(sessionStorage.getItem("UFCO-audio-unlocked")==="1") sfxClock();
+        return;
+      }
+      const step = revealPlan[nextIndex];
+      const el = $(step.id);
+      el.value = String(step.val());
+      el.classList.remove("badField");
+      el.classList.add("okField");
+      $("fb").innerHTML = `<strong>Next:</strong> ${step.msg()}`;
+      setStatus(false, `Showing step ${nextIndex+1}/${revealPlan.length}`);
+      nextIndex++;
+      if(sessionStorage.getItem("UFCO-audio-unlocked")==="1") sfxClock();
+    }
+
+    function clearBlanks(){
+      fieldIds.forEach(id=> $(id).value = "");
+      resetFieldStyles();
+      setStatus(false, "Cleared");
+      $("fb").innerHTML = "<strong>Cleared.</strong> Fill in the blanks again.";
+      setScore(0, "Well done!");
+      nextIndex = 0;
+      if(sessionStorage.getItem("UFCO-audio-unlocked")==="1") sfxClock();
+    }
+
+    function showAllAnswers(){
+      $("tensPart").value = state.tens;
+      $("onesPart").value = state.ones;
+      $("step1Add").value = state.tens;
+      $("step1Ans").value = state.step1;
+      $("step2Start").value = state.step1;
+      $("step2Add").value = state.ones;
+      $("step2Ans").value = state.final;
+      $("finalAns").value = state.final;
+
+      resetFieldStyles();
+      fieldIds.forEach(id=> $(id).classList.add("okField"));
+
+      $("fb").innerHTML =
+        `<strong>All shown:</strong> ${state.B} = ${state.tens} + ${state.ones}. ${state.A} + ${state.tens} = ${state.step1}. ${state.step1} + ${state.ones} = ${state.final}.`;
+      setStatus(false, "All answers shown");
+      nextIndex = revealPlan.length;
+      if(sessionStorage.getItem("UFCO-audio-unlocked")==="1") sfxClock();
+    }
+
+    window.addEventListener("DOMContentLoaded", ()=>{
+      lockScroll();
+
+      // ✅ Sound enabled by default (best possible: auto-resume on first interaction)
+      sessionStorage.setItem("UFCO-audio-unlocked","1");
+      (function(){
+        let armed = false;
+        const arm = () => {
+          if(armed) return;
+          armed = true;
+          try{
+            const ctx = ensureAudio();
+            ctx.resume && ctx.resume().catch(()=>{});
+          }catch(e){}
+        };
+        window.addEventListener("pointerdown", arm, { once:true, capture:true });
+        window.addEventListener("keydown", arm, { once:true, capture:true });
+      })();
+
+      $("btnCheck").addEventListener("click", checkAll);
+      $("btnNext").addEventListener("click", revealNext);
+      $("btnClear").addEventListener("click", clearBlanks);
+      $("btnShowAll").addEventListener("click", showAllAnswers);
+      $("btnNew").addEventListener("click", newQuestion);
+
+      fieldIds.forEach(id=>{
+        $(id).addEventListener("keydown", (e)=>{
+          if(e.key==="Enter"){ e.preventDefault(); checkAll(); }
+        });
+      });
+
+      scaleStage();
+      newQuestion();
+    });
+  </script>
+</body>
+</html>
